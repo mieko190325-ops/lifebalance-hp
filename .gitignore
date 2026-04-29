@@ -1,0 +1,7 @@
+# デスクトップ上のその他のファイルは除外
+*
+!.gitignore
+!CLAUDE.md
+!index.html
+!lifebalance-site/
+!lifebalance-site/**
