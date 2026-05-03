@@ -1373,32 +1373,108 @@
       border-radius: 12px 0 12px 12px;
     }
 
-    /* 選択肢ボタンエリア */
-    .chat-options {
-      padding: 8px 16px 16px;
+    /* テキスト入力エリア */
+    .chat-input-wrap {
       display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .chat-option-btn {
-      padding: 9px 14px;
-      border-radius: var(--radius-sm);
-      border: 1.5px solid var(--border);
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px 14px;
+      border-top: 1px solid var(--border);
       background: var(--bg-white);
-      color: var(--text-dark);
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-align: left;
-      transition: all 0.2s;
-      font-family: inherit;
     }
 
-    .chat-option-btn:hover {
+    .chat-input {
+      flex: 1;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 9px 14px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      color: var(--text-dark);
+      background: var(--bg-light);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input:focus {
       border-color: var(--primary);
-      background: var(--primary-light);
-      color: var(--primary);
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-light);
+    }
+
+    .chat-input:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* 送信ボタン */
+    .chat-send-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .chat-send-btn:hover:not(:disabled) {
+      transform: scale(1.1);
+      box-shadow: 0 4px 14px rgba(59, 155, 111, 0.5);
+    }
+
+    .chat-send-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* タイピングインジケーター */
+    .typing-indicator {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .typing-dots {
+      background: var(--bg-light);
+      border-radius: 0 12px 12px 12px;
+      padding: 12px 16px;
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .typing-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-light);
+      animation: typingBounce 1.2s ease infinite;
+    }
+
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* APIキー未設定時の警告 */
+    .chat-api-notice {
+      padding: 10px 14px;
+      background: #fff8e1;
+      border-top: 1px solid #ffe082;
+      font-size: 0.78rem;
+      color: #7b5e00;
+      text-align: center;
     }
 
     /* =============================
@@ -2372,8 +2448,19 @@
     <!-- メッセージ表示エリア -->
     <div class="chat-messages" id="chatMessages"></div>
 
-    <!-- 選択肢ボタンエリア -->
-    <div class="chat-options" id="chatOptions"></div>
+    <!-- テキスト入力エリア -->
+    <div class="chat-input-wrap">
+      <input type="text" id="chatInput" class="chat-input"
+             placeholder="メッセージを入力..." autocomplete="off" maxlength="500">
+      <button id="chatSend" class="chat-send-btn" aria-label="送信">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
 
   </div>
 
@@ -2426,128 +2513,83 @@
     });
 
 
-    // ===== シナリオ型チャットボット =====
+    // ===== AI チャットボット（Claude API） =====
 
-    // 会話シナリオの定義
-    const scenarios = {
-      welcome: {
-        message: 'こんにちは！LifeBalance サポートです😊\n何についてお知らせしましょうか？',
-        options: [
-          { label: '❓ よくある質問', next: 'faq' },
-          { label: '🌿 サービスを知りたい', next: 'services' },
-          { label: '✉️ お問い合わせしたい', next: 'contact' },
-          { label: '🗺️ サイト内を案内して', next: 'navigation' },
-        ],
-      },
-      faq: {
-        message: 'よくある質問です。知りたい内容を選んでください。',
-        options: [
-          { label: '💰 料金はどのくらい？', next: 'faq_price' },
-          { label: '🔰 初心者でも大丈夫？', next: 'faq_beginner' },
-          { label: '🏢 法人向けプランはある？', next: 'faq_corp' },
-          { label: '← 最初に戻る', next: 'welcome' },
-        ],
-      },
-      faq_price: {
-        message: '料金はサービス内容・プランによって異なります。まずはお問い合わせページよりご相談ください。担当者より詳しくご案内いたします。',
-        options: [
-          { label: 'お問い合わせページへ', action: 'scroll', target: 'contact' },
-          { label: '← FAQに戻る', next: 'faq' },
-        ],
-      },
-      faq_beginner: {
-        message: 'もちろん大丈夫です！\nLifeBalance は健康の知識がゼロの方も安心してスタートできるよう、基礎からていねいにサポートしています。',
-        options: [
-          { label: 'サービスを見る', action: 'scroll', target: 'services' },
-          { label: '← FAQに戻る', next: 'faq' },
-        ],
-      },
-      faq_corp: {
-        message: '法人・企業向けのプランもご用意しております。健康経営・福利厚生・産業保健など、ご要望に合わせてご提案します。',
-        options: [
-          { label: '法人向けに問い合わせる', action: 'scroll', target: 'contact' },
-          { label: '← FAQに戻る', next: 'faq' },
-        ],
-      },
-      services: {
-        message: 'LifeBalance の7つのサービスをご紹介します。\nどれについて詳しく知りたいですか？',
-        options: [
-          { label: '🧑‍⚕️ パーソナル・グループ指導', next: 'srv_coaching' },
-          { label: '🎤 オンライン・リアルセミナー', next: 'srv_seminar' },
-          { label: '📱 アプリ・知識ベース', next: 'srv_digital' },
-          { label: '🌱 健康飲料・サプリメント', next: 'srv_product' },
-          { label: '← 最初に戻る', next: 'welcome' },
-        ],
-      },
-      srv_coaching: {
-        message: 'パーソナル指導・グループ指導では、専門家があなた一人のための健康プログラムを設計します。\n目標・体質・生活スタイルに合わせたオーダーメイドサポートです。',
-        options: [
-          { label: '詳しく見る', action: 'scroll', target: 'services' },
-          { label: '← サービス一覧', next: 'services' },
-        ],
-      },
-      srv_seminar: {
-        message: 'オンラインセミナーはいつでも参加可能。リアルセミナーでは専門家と直接交流できます。\n初心者向けから専門家向けまで幅広い内容を提供しています。',
-        options: [
-          { label: '詳しく見る', action: 'scroll', target: 'services' },
-          { label: '← サービス一覧', next: 'services' },
-        ],
-      },
-      srv_digital: {
-        message: 'LifeBalance アプリで毎日の健康習慣を管理。\n医師監修の知識ベースで正確な健康情報にいつでもアクセスできます。',
-        options: [
-          { label: '詳しく見る', action: 'scroll', target: 'services' },
-          { label: '← サービス一覧', next: 'services' },
-        ],
-      },
-      srv_product: {
-        message: '科学的根拠に基づいて開発した健康飲料・サプリメントです。\n毎日の食事で不足しがちな栄養素を手軽に補えます。',
-        options: [
-          { label: '詳しく見る', action: 'scroll', target: 'services' },
-          { label: '← サービス一覧', next: 'services' },
-        ],
-      },
-      contact: {
-        message: 'お問い合わせフォームへご案内します。\nお気軽にご相談ください！',
-        options: [
-          { label: 'お問い合わせフォームへ', action: 'scroll', target: 'contact' },
-          { label: '← 最初に戻る', next: 'welcome' },
-        ],
-      },
-      navigation: {
-        message: 'サイト内のどのセクションへ移動しますか？',
-        options: [
-          { label: '🏠 トップ', action: 'scroll', target: 'home' },
-          { label: '🌿 サービス紹介', action: 'scroll', target: 'services' },
-          { label: '👥 対象の方', action: 'scroll', target: 'target' },
-          { label: 'ℹ️ 会社概要', action: 'scroll', target: 'about' },
-          { label: '✉️ お問い合わせ', action: 'scroll', target: 'contact' },
-          { label: '← 最初に戻る', next: 'welcome' },
-        ],
-      },
-    };
+    // ▼▼▼ Anthropic API キーをここに設定してください ▼▼▼
+    // ⚠️ APIキーはここに直接書かず、環境変数や別ファイルで管理することを推奨します
+    // 使用前に YOUR_API_KEY_HERE を実際のキーに置き換えてください
+    const ANTHROPIC_API_KEY = 'YOUR_API_KEY_HERE';
+    // ▲▲▲ 設定後はこのファイルを公開サーバーに置くため、
+    //       キーの漏洩リスクに注意してください ▲▲▲
+
+    // LifeBalance 専用のシステムプロンプト
+    const SYSTEM_PROMPT = `あなたはLifeBalanceのAIサポートアシスタント「バランスくん」です。
+LifeBalanceは「長期的かつバランスのとれた豊かな人生を得続ける未来を手にする」をミッションに掲げる健康・ウェルネス企業です。
+
+【サービスコンセプト】
+自分の身体を知り、自分に合ったより健康になるための選択をする知識が身につくサービスを提供しています。
+
+【提供サービスと料金】
+- パーソナル指導：5,000円〜（30分）／専門家があなただけのプログラムを設計します
+- グループ指導：20,000円（2時間・2〜5人）／仲間と一緒に取り組むグループサポート
+- オンラインセミナー：随時開催／いつでも参加できるウェビナー形式の講座
+- リアルセミナー：随時開催／専門家と直接交流できる対面セミナー
+- LifeBalanceアプリ：会員は無料／毎日の健康習慣を管理するスマートフォンアプリ
+- 健康飲料・サプリメント：随時販売／科学的根拠に基づいた栄養補助製品
+
+【営業時間・連絡先】
+- 営業時間：9時〜20時
+- 電話番号：03-○○○○-××××
+
+【よくある質問】
+Q: 無料体験はありますか？
+A: はい、あります😊 お電話・メール・LINEにてご確認ください。
+
+Q: パーソナルトレーナーは選べますか？
+A: 選べます！ご希望のトレーナーを指名される場合は、別途指名料1,000円がかかります。
+
+【対応ルール】
+- 必ず日本語で回答する
+- 親しみやすく温かみのある口調（です・ます調）
+- 回答は簡潔にまとめ、長文は避ける
+- 具体的な医療診断・治療アドバイスは行わず、専門家への相談を促す
+- 予約・詳細のお問い合わせは電話（03-○○○○-××××）またはページ下部のお問い合わせフォームへ誘導する
+- 絵文字を適度に使い、親しみやすさを演出する`;
+
+    // 会話履歴（Claude API に渡す messages 配列）
+    let conversationHistory = [];
 
     // チャットの状態管理
-    let chatOpen = false;
+    let chatOpen       = false;
+    let isStreaming    = false;
+    let initialized    = false;
+
     const chatBtn    = document.getElementById('chatBtn');
     const chatWindow = document.getElementById('chatWindow');
     const chatClose  = document.getElementById('chatClose');
     const chatMsgs   = document.getElementById('chatMessages');
-    const chatOpts   = document.getElementById('chatOptions');
-    let initialized  = false;
+    const chatInput  = document.getElementById('chatInput');
+    const chatSend   = document.getElementById('chatSend');
 
     // チャットを開く
     chatBtn.addEventListener('click', () => {
       chatOpen = true;
       chatWindow.classList.add('open');
-      // バッジを非表示
       const badge = chatBtn.querySelector('.chat-badge');
       if (badge) badge.style.display = 'none';
-      // 初回のみ挨拶を表示
+      // 初回のみウェルカムメッセージを表示
       if (!initialized) {
         initialized = true;
-        setTimeout(() => showScenario('welcome'), 400);
+        const isKeySet = ANTHROPIC_API_KEY !== 'YOUR_API_KEY_HERE';
+        setTimeout(() => {
+          if (isKeySet) {
+            addBotMessage('こんにちは！LifeBalance AIサポートの「バランスくん」です🌿\n健康・サービス・お問い合わせなど、何でもお気軽にご質問ください😊');
+          } else {
+            addBotMessage('⚠️ APIキーが設定されていません。\nCLAUDE.md または index.html 内の ANTHROPIC_API_KEY を設定してください。');
+          }
+        }, 400);
       }
+      chatInput.focus();
     });
 
     // チャットを閉じる
@@ -2556,64 +2598,183 @@
       chatWindow.classList.remove('open');
     });
 
-    // ボットのメッセージを表示する関数
+    // ボットのメッセージを追加する関数
     function addBotMessage(text) {
       const div = document.createElement('div');
       div.className = 'msg-bot';
       div.innerHTML = `
         <div class="msg-bot-avatar">🌿</div>
-        <div class="msg-bubble">${text.replace(/\n/g, '<br>')}</div>
+        <div class="msg-bubble">${escapeHtml(text).replace(/\n/g, '<br>')}</div>
+      `;
+      chatMsgs.appendChild(div);
+      chatMsgs.scrollTop = chatMsgs.scrollHeight;
+      return div;
+    }
+
+    // ユーザーのメッセージを追加する関数
+    function addUserMessage(text) {
+      const div = document.createElement('div');
+      div.className = 'msg-user';
+      div.innerHTML = `<div class="msg-bubble">${escapeHtml(text)}</div>`;
+      chatMsgs.appendChild(div);
+      chatMsgs.scrollTop = chatMsgs.scrollHeight;
+    }
+
+    // タイピングインジケーターを表示する関数
+    function showTyping() {
+      const div = document.createElement('div');
+      div.className = 'typing-indicator';
+      div.id = 'typingIndicator';
+      div.innerHTML = `
+        <div class="msg-bot-avatar">🌿</div>
+        <div class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
       `;
       chatMsgs.appendChild(div);
       chatMsgs.scrollTop = chatMsgs.scrollHeight;
     }
 
-    // ユーザーのメッセージを表示する関数
-    function addUserMessage(text) {
-      const div = document.createElement('div');
-      div.className = 'msg-user';
-      div.innerHTML = `<div class="msg-bubble">${text}</div>`;
-      chatMsgs.appendChild(div);
-      chatMsgs.scrollTop = chatMsgs.scrollHeight;
+    // タイピングインジケーターを削除する関数
+    function hideTyping() {
+      const el = document.getElementById('typingIndicator');
+      if (el) el.remove();
     }
 
-    // シナリオを表示する関数
-    function showScenario(key) {
-      const scene = scenarios[key];
-      if (!scene) return;
+    // HTMLエスケープ（XSS対策）
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
 
-      // ボットのメッセージを表示
-      addBotMessage(scene.message);
+    // 入力UIの有効・無効を切り替える関数
+    function setInputEnabled(enabled) {
+      chatInput.disabled = !enabled;
+      chatSend.disabled  = !enabled;
+      if (enabled) chatInput.focus();
+    }
 
-      // 選択肢ボタンを生成
-      chatOpts.innerHTML = '';
-      scene.options.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.className = 'chat-option-btn';
-        btn.textContent = opt.label;
-        btn.addEventListener('click', () => {
-          addUserMessage(opt.label);
-          chatOpts.innerHTML = ''; // 選択肢をクリア
+    // Claude API にリクエストしてストリーミング受信する関数
+    async function sendToClaude(userText) {
+      if (isStreaming) return;
+      if (ANTHROPIC_API_KEY === 'YOUR_API_KEY_HERE') {
+        addBotMessage('⚠️ APIキーが設定されていません。index.html 内の ANTHROPIC_API_KEY を設定してください。');
+        return;
+      }
 
-          if (opt.action === 'scroll') {
-            // 指定セクションへスクロール
-            const target = document.getElementById(opt.target);
-            if (target) {
-              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-            // チャットを少し後で閉じる
-            setTimeout(() => {
-              chatWindow.classList.remove('open');
-              chatOpen = false;
-            }, 600);
-          } else if (opt.next) {
-            // 次のシナリオへ
-            setTimeout(() => showScenario(opt.next), 500);
-          }
+      isStreaming = true;
+      setInputEnabled(false);
+
+      // 会話履歴にユーザーメッセージを追加
+      conversationHistory.push({ role: 'user', content: userText });
+
+      // タイピングアニメーション表示
+      showTyping();
+
+      try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
+          body: JSON.stringify({
+            model: 'claude-opus-4-7',
+            max_tokens: 1024,
+            stream: true,
+            system: SYSTEM_PROMPT,
+            messages: conversationHistory,
+          }),
         });
-        chatOpts.appendChild(btn);
-      });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.error?.message || `HTTP ${response.status}`);
+        }
+
+        // タイピング表示を消してストリーミング用バブルを生成
+        hideTyping();
+        const botDiv = document.createElement('div');
+        botDiv.className = 'msg-bot';
+        botDiv.innerHTML = `
+          <div class="msg-bot-avatar">🌿</div>
+          <div class="msg-bubble" id="streamingBubble"></div>
+        `;
+        chatMsgs.appendChild(botDiv);
+        const bubble = document.getElementById('streamingBubble');
+
+        // SSE ストリームを読み取る
+        const reader  = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer    = '';
+        let fullText  = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // 未完了行を保持
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6).trim();
+            if (data === '[DONE]') break;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
+                fullText += parsed.delta.text;
+                // 改行を <br> に変換して表示
+                bubble.innerHTML = escapeHtml(fullText).replace(/\n/g, '<br>');
+                chatMsgs.scrollTop = chatMsgs.scrollHeight;
+              }
+            } catch (_) { /* JSONパース失敗は無視 */ }
+          }
+        }
+
+        // 受け取ったテキストを会話履歴に追加
+        if (fullText) {
+          conversationHistory.push({ role: 'assistant', content: fullText });
+        }
+
+        // 会話履歴が長くなりすぎないよう20件に制限
+        if (conversationHistory.length > 20) {
+          conversationHistory = conversationHistory.slice(-20);
+        }
+
+      } catch (error) {
+        hideTyping();
+        addBotMessage(`⚠️ エラーが発生しました。\n${error.message}\n\nしばらく経ってから再度お試しください。`);
+        // エラー時はユーザーメッセージを履歴から除去
+        conversationHistory.pop();
+      } finally {
+        isStreaming = false;
+        setInputEnabled(true);
+      }
     }
+
+    // 送信ボタンクリック
+    chatSend.addEventListener('click', () => {
+      const text = chatInput.value.trim();
+      if (!text || isStreaming) return;
+      chatInput.value = '';
+      addUserMessage(text);
+      sendToClaude(text);
+    });
+
+    // Enterキーで送信（Shift+Enterは改行）
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        chatSend.click();
+      }
+    });
   </script>
 
 </body>
