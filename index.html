@@ -2516,11 +2516,8 @@
     // ===== AI チャットボット（Claude API） =====
 
     // ▼▼▼ Anthropic API キーをここに設定してください ▼▼▼
-    // ⚠️ APIキーはここに直接書かず、環境変数や別ファイルで管理することを推奨します
-    // 使用前に YOUR_API_KEY_HERE を実際のキーに置き換えてください
-    const ANTHROPIC_API_KEY = 'YOUR_API_KEY_HERE';
-    // ▲▲▲ 設定後はこのファイルを公開サーバーに置くため、
-    //       キーの漏洩リスクに注意してください ▲▲▲
+    // APIキーはサーバー側（api/chat.js）の環境変数で管理
+    // ブラウザには露出しないため安全
 
     // LifeBalance 専用のシステムプロンプト
     const SYSTEM_PROMPT = `あなたはLifeBalanceのAIサポートアシスタント「バランスくん」です。
@@ -2580,13 +2577,8 @@ A: 選べます！ご希望のトレーナーを指名される場合は、別�
       // 初回のみウェルカムメッセージを表示
       if (!initialized) {
         initialized = true;
-        const isKeySet = ANTHROPIC_API_KEY !== 'YOUR_API_KEY_HERE';
         setTimeout(() => {
-          if (isKeySet) {
-            addBotMessage('こんにちは！LifeBalance AIサポートの「バランスくん」です🌿\n健康・サービス・お問い合わせなど、何でもお気軽にご質問ください😊');
-          } else {
-            addBotMessage('⚠️ APIキーが設定されていません。\nCLAUDE.md または index.html 内の ANTHROPIC_API_KEY を設定してください。');
-          }
+          addBotMessage('こんにちは！LifeBalance AIサポートの「バランスくん」です🌿\n健康・サービス・お問い合わせなど、何でもお気軽にご質問ください😊');
         }, 400);
       }
       chatInput.focus();
@@ -2657,13 +2649,9 @@ A: 選べます！ご希望のトレーナーを指名される場合は、別�
       if (enabled) chatInput.focus();
     }
 
-    // Claude API にリクエストしてストリーミング受信する関数
+    // Vercel プロキシ経由で Claude API にリクエストする関数
     async function sendToClaude(userText) {
       if (isStreaming) return;
-      if (ANTHROPIC_API_KEY === 'YOUR_API_KEY_HERE') {
-        addBotMessage('⚠️ APIキーが設定されていません。index.html 内の ANTHROPIC_API_KEY を設定してください。');
-        return;
-      }
 
       isStreaming = true;
       setInputEnabled(false);
@@ -2675,18 +2663,13 @@ A: 選べます！ご希望のトレーナーを指名される場合は、別�
       showTyping();
 
       try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
+        // APIキーはサーバー側（/api/chat）で管理 — ブラウザに露出しない
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
           },
           body: JSON.stringify({
-            model: 'claude-opus-4-7',
-            max_tokens: 1024,
-            stream: true,
             system: SYSTEM_PROMPT,
             messages: conversationHistory,
           }),

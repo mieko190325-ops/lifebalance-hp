@@ -5,3 +5,5 @@
 !index.html
 !lifebalance-site/
 !lifebalance-site/**
+!api/
+!api/**
